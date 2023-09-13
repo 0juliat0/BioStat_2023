@@ -13,41 +13,43 @@ knitr::opts_chunk$set(echo = TRUE)
 file_path <- "/Users/juliat/Downloads/numeric_data.rds"
 numeric_data <- readRDS(file_path)
 ```
-Среднее значение (Mean):
+Mean:
 ```{r}
 mean_value <- mean(numeric_data$Базофилы_E1) 
 mean_value # 0.650899
 round(mean_value, 2)
 ```
-Стандартное отклонение (Standard Deviation):
+Standard Deviation:
 ```{r}
 std_deviation <- sd(numeric_data$Базофилы_E1)
 std_deviation # 0.3759102
 round(std_deviation, 2)
 ```
 
-Максимум (Maximum):
+Maximum:
 ```{r}
 maximum_value <- max(numeric_data$Эритроциты_E1)
 maximum_value # 5.7281
 round(maximum_value, 2)
 ```
 
-Стандартная ошибка среднего (Standard Error of the Mean):
+Standard Error of the Mean:
 ```{r}
 гемоглобин_е2 <- numeric_data$Гемоглобин_E2
 ```
 
-Вычисляем стандартное отклонение (SD) переменной
+SD:
 ```{r}
 sd_гемоглобин_е2 <- sd(гемоглобин_е2)
 ```
 
-Вычисляем стандартную ошибку среднего (SEM)
+SEM:
 ```{r}
 n <- length(гемоглобин_е2)  # Количество наблюдений
 sem_гемоглобин_е2 <- sd_гемоглобин_е2 / sqrt(n)
 sem_гемоглобин_е2 # 0.1779345
 round(sem_гемоглобин_е2, 2)
 ```
+
+
 
