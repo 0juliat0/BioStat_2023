@@ -2,7 +2,7 @@
 title: "R_code_5_2"
 author: "0juliat0"
 date: "2023-09-13"
-output: html_document
+output: word_document
 ---
 
 ```{r setup, include=FALSE}
