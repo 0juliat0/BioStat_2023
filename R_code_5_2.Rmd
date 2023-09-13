@@ -8,6 +8,8 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+Курс: Введение в автоматизацию обработки данных на R | BIOSTAT 2023/24
+Задание: 5.2 Обобщающие функции статистик
 
 ```{r}
 file_path <- "/Users/juliat/Downloads/numeric_data.rds"
