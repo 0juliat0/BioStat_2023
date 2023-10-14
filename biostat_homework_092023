@@ -1,0 +1,535 @@
+---
+title: "automatization_notebook_04"
+output: word_document
+date: "`r Sys.Date()`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+
+```
+
+# Чтение данных
+
+В вашем варианте нужно использовать датасет healthcare-dataset-stroke-data.
+
+```{r}
+
+data <- read.csv("/Users/juliat/Downloads/biostat_homework_092023-2/data/raw/healthcare-dataset-stroke-data.csv")
+
+
+```
+
+# Выведите общее описание данных
+
+```{r}
+
+summary(data)
+
+
+```
+
+# Очистка данных
+
+1) Уберите переменные, в которых пропущенных значений больше 20% или уберите субъектов со слишком большим количеством пропущенных значений. Или совместите оба варианта. Напишите обоснование, почему вы выбрали тот или иной вариант:
+```{r}
+# Удаление переменных с более чем 20% отсутствующих значений
+threshold <- 0.2 * nrow(data)
+missing_values <- colSums(is.na(data))
+data <- data[, missing_values <= threshold]
+
+```
+
+**Обоснование**: Столбцы с более чем 20% отсутствующих данных могут быть ненадежными для анализа.
+
+2) Переименуйте переменные в человекочитаемый вид (что делать с пробелами в названиях?);
+```{r}
+# Пример переименования переменных, чтобы сделать их более человекочитаемыми
+names(data) <- c("ID", "Gender", "Age", "Hypertension", "HeartDisease", "Married", "WorkType", "Residence", "GlucoseLevel", "BMI", "SmokingStatus", "Stroke")
+```
+3) В соответствии с описанием данных приведите переменные к нужному типу (numeric или factor);
+```{r}
+# Преобразование в numeric
+data$BMI <- as.numeric(data$BMI)
+data$Age <- as.numeric(data$Age)
+
+# Преобразование в factor
+data$Gender <- as.factor(data$Gender)
+data$SmokingStatus <- as.factor(data$SmokingStatus)
+data$Stroke <- as.factor(data$Stroke)
+data$Married <- as.factor(data$Married)
+data$WorkType <- as.factor(data$WorkType)
+data$Residence <- as.factor(data$Residence)
+```
+4) Отсортируйте данные по возрасту по убыванию;
+```{r}
+data <- data[order(-data$Age), ]
+
+```
+5) Сохраните в файл outliers.csv субъектов, которые являются выбросами (например, по правилу трёх сигм) — это необязательное задание со звёздочкой;
+```{r}
+# Для простоты рассмотрим только индекс массы тела (BMI) для выявления выбросов с использованием правила трех сигм
+mean_bmi <- mean(data$BMI, na.rm = TRUE)
+sd_bmi <- sd(data$BMI, na.rm = TRUE)
+
+outliers <- data[(data$BMI < (mean_bmi - 3*sd_bmi)) | (data$BMI > (mean_bmi + 3*sd_bmi)),]
+write.csv(outliers, "outliers.csv", row.names = FALSE)
+
+
+```
+
+6) Присвойте получившийся датасет переменной "cleaned_data".
+```{r}
+cleaned_data <- data
+
+```
+
+# Сколько осталось переменных?
+
+```{r}
+
+num_vars <- ncol(cleaned_data)
+num_vars
+
+
+```
+
+# Сколько осталось случаев?
+
+```{r}
+num_cases <- nrow(cleaned_data)
+num_cases
+
+```
+
+# Есть ли в данных идентичные строки?
+
+```{r}
+
+identical_rows <- sum(duplicated(cleaned_data))
+identical_rows
+
+
+```
+
+# Сколько всего переменных с пропущенными значениями в данных и сколько пропущенных точек в каждой такой переменной?
+
+```{r}
+
+missing_vars <- colSums(is.na(cleaned_data))
+missing_vars <- missing_vars[missing_vars > 0]
+missing_vars
+
+```
+
+# Описательные статистики
+
+## Количественные переменные
+
+1) Рассчитайте для всех количественных переменных для каждой группы (stroke):
+
+1.1) Количество значений;
+
+1.2) Количество пропущенных значений;
+
+1.3) Среднее;
+
+1.4) Медиану;
+
+1.5) Стандартное отклонение;
+
+1.6) 25% квантиль и 75% квантиль;
+
+1.7) Интерквартильный размах;
+
+1.8) Минимум;
+
+1.9) Максимум;
+
+1.10) 95% ДИ для среднего - задание со звёздочкой.
+
+```{r}
+# Группировка по 'Stroke'
+grouped_data <- cleaned_data %>% group_by(Stroke)
+
+# Обобщение количественных переменных
+
+quantitative_summary <- grouped_data %>%
+  summarise(
+    # 1.1) Количество значений
+    n_Age = n(),
+    n_BMI = sum(!is.na(BMI)),
+    n_GlucoseLevel = sum(!is.na(GlucoseLevel)),
+    
+    # 1.2) Количество пропущенных значений
+    Missing_BMI = sum(is.na(BMI)),
+    Missing_GlucoseLevel = sum(is.na(GlucoseLevel)),
+    
+    # 1.3) Среднее 
+    Mean_Age = mean(Age, na.rm = TRUE),
+    Mean_BMI = mean(BMI, na.rm = TRUE),
+    Mean_GlucoseLevel = mean(GlucoseLevel, na.rm = TRUE),
+    
+    # 1.4) Медиану
+    Median_Age = median(Age, na.rm = TRUE),
+    Median_BMI = median(BMI, na.rm = TRUE),
+    Median_GlucoseLevel = median(GlucoseLevel, na.rm = TRUE),
+    
+    # 1.5) Стандартное отклонение
+    SD_Age = sd(Age, na.rm = TRUE),
+    SD_BMI = sd(BMI, na.rm = TRUE),
+    SD_GlucoseLevel = sd(GlucoseLevel, na.rm = TRUE),
+    
+    # 1.6) 25% квантиль и 75% квантиль
+    Q1_Age = quantile(Age, 0.25, na.rm = TRUE),
+    Q3_Age = quantile(Age, 0.75, na.rm = TRUE),
+    Q1_BMI = quantile(BMI, 0.25, na.rm = TRUE),
+    Q3_BMI = quantile(BMI, 0.75, na.rm = TRUE),
+    Q1_GlucoseLevel = quantile(GlucoseLevel, 0.25, na.rm = TRUE),
+    Q3_GlucoseLevel = quantile(GlucoseLevel, 0.75, na.rm = TRUE),
+   
+        # 1.7) Интерквартильный размах
+    IQR_Age = IQR(Age, na.rm = TRUE),
+    IQR_BMI = IQR(BMI, na.rm = TRUE),    IQR_GlucoseLevel = IQR(GlucoseLevel, na.rm = TRUE),
+    
+    # 1.8) Минимум
+    Min_Age = min(Age, na.rm = TRUE),
+    Min_BMI = min(BMI, na.rm = TRUE),
+    Min_GlucoseLevel = min(GlucoseLevel, na.rm = TRUE),
+    
+    # 1.9) Максимум
+    Max_Age = max(Age, na.rm = TRUE),
+    Max_BMI = max(BMI, na.rm = TRUE),
+    Max_GlucoseLevel = max(GlucoseLevel, na.rm = TRUE)
+  ) %>%
+  # 1.10) 95% ДИ для среднего
+  mutate(
+    Lower_CI_Age = Mean_Age - 1.96*SD_Age/sqrt(n_Age), 
+    Upper_CI_Age = Mean_Age + 1.96*SD_Age/sqrt(n_Age),
+    Lower_CI_BMI = Mean_BMI - 1.96*SD_BMI/sqrt(n_BMI),
+    Upper_CI_BMI = Mean_BMI + 1.96*SD_BMI/sqrt(n_BMI),
+    Lower_CI_GlucoseLevel = Mean_GlucoseLevel - 1.96*SD_GlucoseLevel/sqrt(n_GlucoseLevel),
+    Upper_CI_GlucoseLevel = Mean_GlucoseLevel + 1.96*SD_GlucoseLevel/sqrt(n_GlucoseLevel)
+  )
+
+quantitative_summary
+
+```
+
+## Категориальные переменные
+
+1) Рассчитайте для всех категориальных переменных для каждой группы (stroke):
+
+1.1) Абсолютное количество;
+
+1.2) Относительное количество внутри группы;
+
+1.3) 95% ДИ для доли внутри группы - задание со звёздочкой.
+
+```{r}
+
+# Группировка по 'Stroke'
+stroke_summary <- cleaned_data %>% 
+  group_by(Stroke) %>%
+  summarise(
+    # 1.1) Абсолютное количество
+    Count = n(),
+  ) %>% 
+  # 1.2) Относительное количество внутри группы
+  mutate(
+    Proportion_within_group = Count / nrow(cleaned_data)
+  ) %>% 
+  # 1.3) 95% ДИ для доли внутри группы (с использованием биномиального точного метода)
+  mutate(
+    Lower_CI = binom.test(Count, nrow(cleaned_data))$conf.int[1],
+    Upper_CI = binom.test(Count, nrow(cleaned_data))$conf.int[2]
+  )
+stroke_summary
+
+```
+
+# Визуализация
+
+## Количественные переменные
+
+1) Для каждой количественной переменной сделайте боксплоты по группам. Расположите их либо на отдельных рисунках, либо на одном, но читаемо;
+```{r}
+
+library(ggplot2)
+library(RColorBrewer)
+
+# BMI
+p1 <- ggplot(cleaned_data, aes(x = Stroke, y = BMI, fill = Stroke)) +
+  geom_boxplot() +
+  scale_fill_brewer(palette="Set1") +
+  ggtitle("BMI vs. Stroke Status") +
+  theme_minimal()
+p1
+
+# Age
+p2 <- ggplot(cleaned_data, aes(x = Stroke, y = Age, fill = Stroke)) + 
+  geom_boxplot() +
+  scale_fill_brewer(palette = "Set1") + 
+  ggtitle("Age vs. Stroke Status") +
+  theme_minimal()
+p2 
+
+# Glucose Level
+p3 <- ggplot(cleaned_data, aes(x = Stroke, y = GlucoseLevel, fill = Stroke)) +
+  geom_boxplot() +
+  scale_fill_brewer(palette="Set1") +
+  ggtitle("Glucose Level vs. Stroke Status") +
+  theme_minimal()
+p3
+
+
+
+
+```
+2) Наложите на боксплоты beeplots - задание со звёздочкой.
+```{r}
+
+# BMI Boxplot and Beeplot
+p4 <- ggplot(cleaned_data, aes(x = Stroke, y = BMI, color = Stroke)) +
+  geom_boxplot(alpha = 0.7) +  # Уменьшение alpha для лучшего отображения точек beeplot
+  scale_color_brewer(palette = "Set1") +
+  ggtitle("BMI vs. Stroke Status") +
+  theme_minimal()
+
+p4
+
+# Age Boxplot and Beeplot
+p5 <- ggplot(cleaned_data, aes(x = Stroke, y = Age, color = Stroke)) +
+  geom_boxplot(alpha = 0.7) +
+  scale_color_brewer(palette = "Set1") +
+  ggtitle("Age vs. Stroke Status") +
+  theme_minimal()
+
+p5
+
+# Glucose Level Boxplot and Beeplot
+p6 <- ggplot(cleaned_data, aes(x = Stroke, y = GlucoseLevel, color = Stroke)) +
+  geom_boxplot(alpha = 0.7) +
+  scale_color_brewer(palette = "Set1") +
+  ggtitle("Glucose Level vs. Stroke Status") +
+  theme_minimal()
+
+p6
+
+
+
+```
+3) Раскрасьте боксплоты с помощью библиотеки RColorBrewer.
+
+```{r}
+display.brewer.all()
+# Все раскрашены используя 'Set1'
+
+```
+
+## Категориальные переменные
+
+1) Сделайте подходящие визуализации категориальных переменных. Обоснуйте, почему выбрали именно этот тип.
+
+```{r}
+# 'Gender' vs. Stroke
+p7 <- ggplot(cleaned_data, aes(x = Gender, fill = Stroke)) +
+  geom_bar(position = "dodge") +
+  scale_fill_brewer(palette="Set1") +
+  ggtitle("Gender vs. Stroke") +
+  theme_minimal()
+p7
+
+# 'Married' vs. Stroke
+p8 <- ggplot(cleaned_data, aes(x = Married, fill = Stroke)) +
+  geom_bar(position = "dodge") +
+  scale_fill_brewer(palette="Set1") +
+  ggtitle("Married vs. Stroke") +
+  theme_minimal()
+p8
+
+# 'WorkType' vs. Stroke
+p9 <- ggplot(cleaned_data, aes(x = WorkType, fill = Stroke)) +
+  geom_bar(position = "dodge") +
+  scale_fill_brewer(palette="Set1") +
+  ggtitle("WorkType vs. Stroke") +
+  theme_minimal()
+p9
+
+# 'Residence' vs. Stroke
+p10 <- ggplot(cleaned_data, aes(x = Residence, fill = Stroke)) +
+  geom_bar(position = "dodge") +
+  scale_fill_brewer(palette="Set1") +
+  ggtitle("Residence vs. Stroke") +
+  theme_minimal()
+p10
+
+# 'SmokingStatus' vs. Stroke
+p11 <- ggplot(cleaned_data, aes(x = SmokingStatus, fill = Stroke)) +
+  geom_bar(position = "dodge") +
+  scale_fill_brewer(palette="Set1") +
+  ggtitle("SmokingStatus vs. Stroke") +
+  theme_minimal()
+p11
+
+# Обоснование:
+# Простота интерпретации: Столбчатые диаграммы легко интерпретируются и позволяют отобразить распределение данных по различным категориям.
+# Сравнительный анализ: Позволяет легко сравнивать размеры каждой категории.
+
+```
+
+# Статистические оценки
+
+## Проверка на нормальность
+
+1) Оцените каждую переменную на соответствие нормальному распределению с помощью теста Шапиро-Уилка. Какие из переменных являются нормальными и как как вы это поняли?
+
+```{r}
+
+# Количественне переменные:("Age", "GlucoseLevel", "BMI")
+
+# Применение Shapiro-Wilk Test
+cleaned_data <- na.omit(cleaned_data) # Удаление строк со значениями NA в любом столбце
+
+# Проверить, находится ли размер выборки в допустимом диапазоне для shapiro.test
+if(nrow(cleaned_data) >= 3 & nrow(cleaned_data) <= 5000) {
+  s_test_age <- shapiro.test(cleaned_data$Age)
+  s_test_glucose <- shapiro.test(cleaned_data$GlucoseLevel)
+  s_test_bmi <- shapiro.test(cleaned_data$BMI)
+
+# Вывод результатов
+  cat("P-value for Age:", s_test_age$p.value, "\n")
+  cat("P-value for GlucoseLevel:", s_test_glucose$p.value, "\n")
+  cat("P-value for BMI:", s_test_bmi$p.value, "\n")
+  
+} 
+
+# Значения p-value для Shapiro-Wilk tests для Age, GlucoseLevel, и BMI значительно ниже общепринятого порога 0,05, что означает отклонение нулевой гипотезы о том, что данные для этих переменных нормально распределены.
+
+```
+
+2) Постройте для каждой количественной переменной QQ-плот. Отличаются ли выводы от теста Шапиро-Уилка? Какой метод вы бы предпочли и почему?
+
+```{r}
+# 'Age'
+qqnorm(cleaned_data$Age, main="QQ-plot for Age")
+qqline(cleaned_data$Age)
+
+# 'GlucoseLevel'
+qqnorm(cleaned_data$GlucoseLevel, main="QQ-plot for GlucoseLevel")
+qqline(cleaned_data$GlucoseLevel)
+
+# 'BMI'
+qqnorm(cleaned_data$BMI, main="QQ-plot for BMI")
+qqline(cleaned_data$BMI)
+
+# Интерпретация:
+# Если данные распределены нормально, то точки на QQ-площадке должны приблизительно лежать вдоль линии.
+# Отклонения от линии свидетельствуют об отклонениях от нормальности.
+# Shapiro-Wilk Test:
+# Плюсы: Дает p-значение, которое легко интерпретировать.
+# Минусы: может быть чувствителен к размеру выборки.
+# QQ-plot:
+# Плюсы: Визуально интуитивно понятен и не чувствителен к размеру выборки.
+# Минусы: Может быть несколько субъективной, поскольку это визуальная интерпретация.
+# Личные предпочтения: QQ-график может быть предпочтительнее из-за вышеупомянутых проблем с тестом Шапиро-Уилка для больших выборок.
+
+```
+
+3) Ниже напишите, какие ещё методы проверки на нормальность вы знаете и какие у них есть ограничения.
+
+**Напишите текст здесь**
+Kolmogorov-Smirnov test: Проверяет сходство двух распределений. К недостаткам можно отнести чувствительность к количеству точек данных и невозможность указать, с каким распределением сравнивать.
+Anderson-Darling test: Модификация теста KS, в которой большее значение придается хвостам. Как и KS, он чувствителен к количеству точек данных.
+Lilliefors (Kolmogorov-Smirnov) test: Адаптация теста KS для малых объемов выборки.
+
+## Сравнение групп
+
+1) Сравните группы (переменная **stroke**) по каждой переменной (как количественной, так и категориальной). Для каждой переменной выберите нужный критерий и кратко обоснуйте его выбор в комментариях.
+
+```{r}
+# Quantitative Variables
+# t-тест для "Age" между группами инсульта
+t_test_age <- t.test(Age ~ Stroke, data=cleaned_data)
+t_test_age$p.value # Проверка значимости
+
+# t-тест для "BMI" между группами инсульта
+t_test_bmi <- t.test(BMI ~ Stroke, data=cleaned_data)
+t_test_bmi$p.value # Проверка значимости
+
+# t-тест для "GlucoseLevel" между группами инсульта
+t_test_GlucoseLevel <- t.test(GlucoseLevel ~ Stroke, data=cleaned_data)
+t_test_GlucoseLevel$p.value # Проверка значимости
+
+# Обоснование:
+# t-тест используется для определения наличия значимой разницы между средними значениями двух групп. Он применяется при сравнении двух групп (например, "да" и "нет") по непрерывной переменной (например, возраст, индекс массы тела).
+
+# Categorical Variables
+# Тест хи-квадрат для "Gender" между группами инсульта
+chisq_gender <- chisq.test(table(cleaned_data$Gender, cleaned_data$Stroke))
+chisq_gender$p.value # Проверка значимости
+
+# Тест хи-квадрат для "WorkType" между группами инсульта
+chisq_WorkType <- chisq.test(table(cleaned_data$WorkType, cleaned_data$Stroke))
+chisq_WorkType$p.value # Проверка значимости
+
+# Тест хи-квадрат для "SmokingStatus" между группами инсульта
+chisq_SmokingStatus <- chisq.test(table(cleaned_data$SmokingStatus, cleaned_data$Stroke))
+chisq_SmokingStatus$p.value # Проверка значимости
+
+# Обоснование:
+# Тест хи-квадрат используется для проверки взаимосвязи между категориальными переменными. Он показывает, соответствует ли распределение категориальных данных выборки ожидаемому распределению.
+
+```
+
+# Далее идут **необязательные** дополнительные задания, которые могут принести вам дополнительные баллы в том числе в случае ошибок в предыдущих
+
+## Корреляционный анализ
+
+1) Создайте корреляционную матрицу с визуализацией и поправкой на множественные сравнения. Объясните, когда лучше использовать корреляционные матрицы и в чём минусы и плюсы корреляционных исследований.
+
+Когда использовать: Когда необходимо увидеть линейные зависимости между несколькими переменными одновременно.
+Плюсы: Дает общее представление о взаимосвязях.
+Минусы: Выявляет только линейные зависимости. При большом количестве переменных может быть перегружена.
+
+```{r}
+library(corrplot)
+library(Hmisc)
+
+# Выбрать только количественные переменные
+quant_vars <- cleaned_data[, sapply(cleaned_data, is.numeric)]
+
+# Вычислить корреляционную матрицу
+corr_matrix <- cor(quant_vars, use = "pairwise.complete.obs")
+
+# Создать наглядную корреляционную матрицу
+corrplot(corr_matrix, method = "circle", type = "upper")
+
+# Вычисление p-значений
+p_values <- rcorr(as.matrix(quant_vars))$P
+
+# Коррекция множественных сравнений с помощью поправки Бонферрони
+p_values_adj <- p.adjust(p_values, method = "bonferroni")
+
+```
+
+## Моделирование
+
+1) Постройте регрессионную модель для переменной **stroke**. Опишите процесс построения
+
+
+```{r}
+# Поскольку инсульт - это бинарная переменная, для ее решения подходит логистическая регрессия, которая предсказывает вероятность принадлежности к той или иной категории.
+# Построение модели логистической регрессии
+# Выбор переменных: Рассмотрим переменные, которые имеют клиническое значение или были выделены как значимые в результате эксплораторного анализа данных.
+# Разделение данных: Разделите данные на обучающий и тестовый наборы для оценки эффективности модели.
+# Построение модели: Построение модели логистической регрессии на основе обучающих данных.
+fit_model <- glm(Stroke ~ Age + Gender + Hypertension + HeartDisease + GlucoseLevel + BMI, 
+                 data = train_data, family = "binomial")
+summary(fit_model)
+
+```
+
+
