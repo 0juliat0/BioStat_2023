@@ -1,0 +1,313 @@
+---
+title: "HW_1"
+author: "0juliat0"
+date: "2023-11-05"
+output: rmarkdown::github_document
+---
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(
+  fig.path = "README_figs/README-"
+)
+```
+
+Загружаем необходимые бииблиотеки
+```{r}
+library(ggplot2)
+library(dplyr)
+library(readr)
+library(gridExtra)
+library(reshape2) 
+```
+
+
+1. Загрузите датасет insurance_cost.csv
+```{r}
+insurance <- read_csv("/Users/juliat/Downloads/insurance_cost.csv")
+```
+2. Выведите гистограммы всех нумерических переменных
+```{r}
+numeric_columns <- sapply(insurance, is.numeric)
+numeric_data <- insurance[, numeric_columns]
+hist_plots <- lapply(names(numeric_data), function(column) {
+  ggplot(insurance, aes_string(x = column)) +
+    geom_histogram(bins = 30, fill = "blue", color = "black") +
+    ggtitle(paste("Histogram of", column))
+})
+lapply(hist_plots, print) # Вывести все графики гистограмм  
+```
+
+3. Нарисуйте график плотности по колонке charges. Отметьте вертикальные линии
+средней и медианы на графике. Раскрасьте текст и линии средней и медианы
+разными цветами. Добавьте текстовые пояснения значения средней и медианы.
+Подберите тему для графика. Назовите оси.
+```{r}
+# Рассчитать положение по оси y для аннотаций
+max_density <- max(density(insurance$charges)$y)
+
+# Построение графика плотности
+density_plot <- ggplot(insurance, aes(x = charges)) +
+  geom_density(fill = "blue", alpha = 0.7) +  # График плотности
+  geom_vline(aes(xintercept = mean(charges)), color = "red", linetype = "dashed", size = 1) +
+  geom_vline(aes(xintercept = median(charges)), color = "green", linetype = "dashed", size = 1) +
+  geom_text(aes(x = mean(charges), y = max_density, label = paste("Mean =", round(mean(charges), 2))), color = "red", vjust = 1.5) +
+  geom_text(aes(x = median(charges), y = max_density, label = paste("Median =", round(median(charges), 2))), color = "green", vjust = 2) +
+  ggtitle("Density Plot for Charges with Mean and Median") +
+  xlab("Charges") +   # Название оси x
+  ylab("Density") +  # Название оси y
+  theme_minimal()  # Используем минималистичную тему для лучшей читаемости
+
+print (density_plot)
+
+```
+4. Сделайте три box_plot по отношению переменных charges и (1) sex (2) smoker (3)
+region. Подберите тему для графика. Назовите оси.
+
+```{r}
+
+boxplot_sex <- ggplot(insurance, aes(x = sex, y = charges)) +
+  geom_boxplot() +
+  ggtitle("Box plot of charges by sex") +
+  theme_minimal()
+
+boxplot_smoker <- ggplot(insurance, aes(x = smoker, y = charges)) +
+  geom_boxplot() +
+  ggtitle("Box plot of charges by smoker status") +
+  theme_minimal()
+
+boxplot_region <- ggplot(insurance, aes(x = region, y = charges)) +
+  geom_boxplot() +
+  ggtitle("Box plot of charges by region") +
+  theme_minimal()
+
+print(boxplot_sex)
+print(boxplot_smoker)
+print(boxplot_region)
+```
+5. Объедините графики из заданий 3 и 4 в один так, чтобы сверху шёл один график из
+задания 3, а под ним 3 графика из задания 4. Сделайте общее название для графика.
+```{r}
+
+layout_matrix <- rbind(
+  c(1, 1, 1),
+  c(2, 3, 4)
+)
+
+grid.arrange(
+  density_plot, 
+  boxplot_sex, 
+  boxplot_smoker, 
+  boxplot_region,
+  layout_matrix = layout_matrix,
+  top = "Combined Density and Box Plots for Insurance Data" 
+)
+
+```
+
+6. Сделайте фасет графика из задания 3 по колонке region.
+```{r}
+
+ggplot(insurance, aes(x = charges)) +
+  geom_density(alpha = 0.7, fill = "blue") +
+  facet_wrap(~ region) +
+  ggtitle("Density of Charges by Region")
+
+```
+
+7. Постройте scatter plot отношения переменных age и charges. Добавьте названия
+ осей, название графика и тему. Сделайте так, чтобы числа по оси Х отображались
+ 14 шрифтом.
+
+```{r}
+
+ggplot(insurance, aes(x = age, y = charges)) +
+  geom_point(aes(color = smoker)) + # Точки окрашены в зависимости от статуса курильщика
+  labs(title = "Age vs Charges", x = "Age", y = "Charges") +
+  ggtitle("Scatter plot of age vs charges") +
+  theme(
+    axis.text.x = element_text(size = 14)  # Чтобы числа по оси Х отображались 14 шрифтом
+  )
+  
+```
+
+8. Проведите линию тренда для предыдущего графика. 
+```{r}
+
+ggplot(insurance, aes(x = age, y = charges)) +
+  geom_point(aes(color = smoker)) +
+  geom_smooth(method = "lm", aes(color = smoker)) + # Добавить линию тренда
+  labs(title = "Age vs Charges with Trend Lines", x = "Age", y = "Charges")
+
+```
+
+9. Сделайте разбивку предыдущего графика по колонке smokers (у вас должно
+получится две линии тренда для курящих и нет).
+```{r}
+ggplot(insurance, aes(x = age, y = charges)) +
+  geom_point(aes(color = smoker)) +
+  geom_smooth(method = "lm", aes(color = smoker)) + # Добавить линию тренда
+  labs(title = "Age vs Charges by Smoking Status", x = "Age", y = "Charges") +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(size = 14) # Чтобы числа по оси Х отображались 14 шрифтом
+  )
+
+```
+
+10. Сделайте график из заданий 7-9, но вместо переменной age используйте
+переменную bmi.
+```{r}
+
+ggplot(insurance, aes(x = bmi, y = charges)) +
+  geom_point(aes(color = smoker)) +  # Точки окрашены в зависимости от статуса курильщика
+  geom_smooth(method = "lm", aes(color = smoker)) +  # Добавить линию тренда
+  labs(
+    title = "BMI vs Charges by Smoking Status",
+    x = "BMI",
+    y = "Charges"
+  ) +
+  theme_minimal() +  # Используем минималистичную тему для лучшей читаемости
+  theme(
+    axis.text.x = element_text(size = 14),  # Чтобы числа по оси Х отображались 14 шрифтом
+  )
+
+```
+
+11. Самостоятельно задайте вопрос №1 к данным (вопрос должен быть про какую-то
+подвыборку данных). Ответьте на него построив график на подвыборке данных.
+График должен содержать все основные элементы оформления (название, подписи
+осей, тему и проч.). Аргументируйте выбор типа графика.
+```{r}
+
+# вопрос №1: Каково распределение медицинских расходов среди людей без детей по сравнению с людьми, имеющими детей?
+# Чтобы ответить на этот вопрос, можно использовать box plot, так как этот тип графика позволяет сравнивать  
+# распределение расходов при наличии детей или их отсутствии и хорошо показывает медиану, квартили, а также выбросы.
+
+# Создаем подвыборку данных, где дети - это фактор с двумя уровнями: "No Children" и "With Children"
+insurance$children_category <- ifelse(insurance$children > 0, "With Children", "No Children")
+
+# Строим box plot
+ggplot(insurance, aes(x = children_category, y = charges)) +
+  geom_boxplot(fill = "tomato", outlier.color = "red", outlier.shape = 21) +
+  labs(
+    title = "Medical Charges by Parental Status",
+    x = "Parental Status",
+    y = "Medical Charges"
+  ) +
+  theme_minimal() +  # Используем минималистичную тему для лучшей читаемости
+  theme(
+    plot.title = element_text(size = 14, face = "bold"),
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12)
+  )
+
+# Расчет для родителей без детей
+no_children_stats <- summary(insurance[insurance$children == 0,]$charges)
+no_children_outliers <- boxplot.stats(insurance[insurance$children == 0,]$charges)$out
+
+# Расчет для родителей с детьми
+with_children_stats <- summary(insurance[insurance$children > 0,]$charges)
+with_children_outliers <- boxplot.stats(insurance[insurance$children > 0,]$charges)$out
+
+# Вывод статистики для родителей без детей
+print("Статистика для родителей без детей:")
+print(no_children_stats)
+print(paste("Количество выбросов:", length(no_children_outliers)))
+
+# Вывод статистики для родителей с детьми
+print("Статистика для родителей с детьми:")
+print(with_children_stats)
+print(paste("Количество выбросов:", length(with_children_outliers)))
+
+# Медиана расходов для родителей без детей составляет 9857, что чуть выше, чем медиана расходов для родителей с детьми, равная 9224. Это противоречит первоначальному предположению о том, что медиана расходов для родителей без детей ниже.
+# Верхний квартиль для родителей с детьми составляет 18232, что заметно выше, чем у родителей без детей (14440).  Аналогично, нижний квартиль для родителей с детьми также выше (5810 против 2734), что показывает, что и нижний квартиль расходов для родителей с детьми выше.
+# Количество выбросов для родителей без детей составляет 63, а для родителей с детьми — 77. 
+
+# Исходя из этих данных, можно утверждать, что хотя средние расходы (медиана) для родителей с детьми и без детей схожи, распределение расходов у родителей с детьми более широкое, с более высокими расходами в верхнем квартиле. 
+# Таким образом, хотя медиана расходов схожа, родители с детьми чаще сталкиваются с более высокими медицинскими расходами, чем родители без детей.
+
+```
+
+12. Самостоятельно задайте вопрос №2 к данным (вопрос должен быть про какую-то
+подвыборку данных). Ответьте на него построив график на подвыборке данных.
+График должен содержать все основные элементы оформления (название, подписи
+осей, тему и проч.). Аргументируйте выбор типа графика.
+```{r}
+
+# вопрос №2: Как соотносятся средние медицинские расходы с возрастом в различных регионах?
+# Ответ на этот вопрос позволит нам увидеть, есть ли зависимость между возрастом и средними медицинскими расходами и отличается ли эта зависимость в разных регионах.
+ 
+# Для ответа на этот вопрос мы можем использовать линейный график, где по оси x будет возраст, по оси y — средние затраты на медицину, а линии будут представлять различные регионы. Линейный график выбран, потому что он хорошо показывает тенденции и изменения в данных, особенно когда мы хотим оценить, как одна переменная изменяется в зависимости от другой. В данном случае мы сможем оценить, как изменяются медицинские расходы по мере старения человека в различных регионах
+
+ggplot(insurance, aes(x = age, y = charges, group = region, color = region)) +
+  geom_line(stat = "summary") + # Используем summary statistic для построения средних значений
+  geom_point(alpha = 0.5) + # добавляем точки с прозрачностью для лучшей визуализации
+  labs(title = "Average Medical Charges by Age Across Regions",
+       x = "Age",
+       y = "Average Charges",
+       color = "Region") +
+  theme_minimal() + # Используем минималистичную тему для лучшей читаемости
+  theme(legend.position = "bottom") # Помещаем легенду внизу для лучшей интерпретации
+
+# На графике видно, что во всех регионах наблюдается тенденция к увеличению средних медицинских расходов с возрастом.
+# Хотя общая тенденция увеличения затрат с возрастом характерна для всех регионов, различные регионы показывают различные уровни средних расходов. 
+
+```
+
+13. Самостоятельно задайте вопрос №3 к данным (вопрос должен быть про какую-то
+подвыборку данных). Ответьте на него построив график на подвыборке данных.
+График должен содержать все основные элементы оформления (название, подписи
+осей, тему и проч.). Аргументируйте выбор типа графика.
+```{r}
+
+# вопрос №3: Какова степень корреляции между числовыми переменными в наборе данных страхования?
+# Для ответа на вопрос мы можем использовать heat map корреляции, потому что она позволяет визуализировать степень корреляции между переменными в матрице корреляции. Heat map является эффективным способом представления таких данных, поскольку позволяет быстро оценить, какие переменные наиболее тесно связаны, исходя из цветовой шкалы.
+
+numeric_data <- select(insurance, where(is.numeric))
+cor_matrix <- cor(numeric_data)
+melted_cor_matrix <- melt(cor_matrix) # Преобразуем корреляционную матрицу в формат данных для ggplot
+
+ggplot(data = melted_cor_matrix, aes(Var1, Var2, fill = value)) +
+  geom_tile() + # Используем плитки для создания heat map
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                       midpoint = 0, limit = c(-1,1), space = "Lab", 
+                       name="Pearson\nCorrelation") +
+  theme_minimal() +  # Используем минималистичную тему для лучшей читаемости
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  labs(title = "Heatmap of the Correlation Matrix", 
+       x = "Variables", 
+       y = "Variables") +
+  coord_fixed()
+
+# 1) Корреляция возраста и расходов: Существует относительно высокая положительная корреляция между возрастом и расходами, что видно по более темному красному цвету. Это означает, что с возрастом расходы на страхование, вероятно, увеличиваются.
+# 2) Корреляция BMI и расходов: Есть умеренная положительная корреляция между индексом массы тела (BMI) и расходами. Это может указывать на то, что более высокий BMI может быть ассоциирован с более высокими расходами на страхование.
+# 3) Корреляция количества детей и расходов: Между количеством детей и расходами присутствует слабая положительная корреляция, что указывает на возможное небольшое увеличение расходов на страхование с увеличением количества детей.
+# 4) Другие корреляции: Корреляция между возрастом и BMI, возрастом и количеством детей, а также BMI и количеством детей кажется незначительной, что указывает на слабую или отсутствующую линейную связь между этими переменными.
+
+```
+
+14. (это задание засчитывается за два) Приблизительно повторите график:
+```{r}
+
+# Создаём age_group
+insurance$age_group <- cut(insurance$age, 
+                           breaks = c(20, 34, 49, Inf), 
+                           labels = c("21-34", "35-49", "50+"), 
+                           right = FALSE)
+
+# Преобразуем 'charges' в логарифмический масштаб
+insurance$log_charges <- log(insurance$charges)
+
+# Создаём график
+ggplot(insurance, aes(x = bmi, y = log_charges)) +
+  geom_point(alpha = 0.5) + # добавляем точки с прозрачностью для лучшей визуализации
+  geom_smooth(method = "lm", se = TRUE) + # линейная регрессия с доверительным интервалом
+  facet_wrap(~ age_group, scales = "free") + # создаём фасеты для каждой возрастной группы
+  labs(title = "Ratio of BMI to the logarithm of expenditure by age group",
+       x = "bmi",
+       y = "log(charges)") +
+  theme_minimal() # Используем минималистичную тему для лучшей читаемости
+
+```
+
+
